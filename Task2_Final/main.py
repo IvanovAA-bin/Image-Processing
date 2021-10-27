@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-
+import os
 
 # constants
 window_source_name = "source image"
@@ -26,7 +26,9 @@ high_V_ill_name = "high V ill"
 
 image_pick_trackbar_name = "image pick"
 image_filter_trackbar_name = "filt type"
-image_pick_name = "1.jpg"
+image_base_name = "./ListsDataset/"
+filters_base_name = "./GeneratedFilters/"
+image_pick_name = image_base_name + "1.jpg"
 image_pick_number = 1
 image_filter_type = 0
 current_image_pick_number = -1
@@ -49,22 +51,23 @@ nlm_searWinSize_max_value = 50
 
 max_value = 255
 max_value_H = 360//2
+image_max_number = 2000
 # constants
 
 # variables
-low_H_green = 45
-high_H_green = 83
-low_S_green = 0
-high_S_green = 255
-low_V_green = 0
-high_V_green = 255
+low_H_green = 40
+high_H_green = 100
+low_S_green = 22
+high_S_green = 244
+low_V_green = 33
+high_V_green = 250
 
-low_H_ill = 5
-high_H_ill = 20
-low_S_ill = 44
-high_S_ill = 235
-low_V_ill = 70
-high_V_ill = 242
+low_H_ill = 4
+high_H_ill = 23
+low_S_ill = 56
+high_S_ill = 140
+low_V_ill = 110
+high_V_ill = 201
 
 bilateral_diameter_value = 4
 bilateral_sigmaColor_value = 59
@@ -176,10 +179,11 @@ def clbk_high_V_ill(val):
 def clbk_image_pick(val):
     global image_pick_name
     global image_pick_number
+    global lists_paths
     image_pick_number = val
-    image_pick_number = max(1, image_pick_number)
-    image_pick_name = str(image_pick_number) + ".jpg"
-    cv.setTrackbarPos(image_pick_trackbar_name, window_trackbar_settings_name, image_pick_number)
+    #image_pick_number = max(1, image_pick_number)
+    image_pick_name = image_base_name + lists_paths[image_pick_number]
+    #cv.setTrackbarPos(image_pick_trackbar_name, window_trackbar_settings_name, image_pick_number)
 
 def clbk_image_filter_type(val):
     global image_filter_type
@@ -241,6 +245,10 @@ def clbk_nlm_searWinSize_value(val):
 # callback functions for trackbars
 
 
+lists_paths = os.listdir(image_base_name)
+filters_paths = os.listdir(filters_base_name)
+image_max_number = len(lists_paths)
+
 # windows settings
 cv.namedWindow(window_source_name)
 cv.namedWindow(window_green_part_name)
@@ -265,7 +273,7 @@ cv.createTrackbar(high_S_ill_name, window_trackbar_settings_name, high_S_ill,  m
 cv.createTrackbar( low_V_ill_name, window_trackbar_settings_name,  low_V_ill,  max_value,   clbk_low_V_ill)
 cv.createTrackbar(high_V_ill_name, window_trackbar_settings_name, high_V_ill,  max_value,  clbk_high_V_ill)
 
-cv.createTrackbar(image_pick_trackbar_name, window_trackbar_settings_name, image_pick_number, 12, clbk_image_pick)
+cv.createTrackbar(image_pick_trackbar_name, window_trackbar_settings_name, image_pick_number, image_max_number, clbk_image_pick)
 cv.createTrackbar(image_filter_trackbar_name, window_trackbar_settings_name, image_filter_type, 2,
                   clbk_image_filter_type)
 
@@ -282,6 +290,7 @@ cv.createTrackbar(nlm_searWinSize_name, window_filer_settings_name, nlm_searWinS
                   clbk_nlm_searWinSize_value)
 # trackbars
 
+markerType = True
 
 #cv.resizeWindow(window_trackbar_settings_name, 400, 200)
 source_image = None
@@ -316,9 +325,15 @@ while True:
 
     markers = np.zeros((source_image.shape[0], source_image.shape[1]), dtype="int32")
 
-    morph_element = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))
-    dilation_added_image = cv.dilate(cv.add(image_ill_part, image_green_part), morph_element)
-    markers[dilation_added_image == 0] = 255
+    if markerType:
+        morph_element = cv.getStructuringElement(cv.MORPH_RECT, (17, 17))
+        dilation_added_image = cv.dilate(cv.add(image_ill_part, image_green_part), morph_element)
+        markers[dilation_added_image == 0] = 255
+    else:
+        markers[0:10, 0:10] = 255
+        markers[0:10, markers.shape[1] - 10:markers.shape[1]] = 255
+        markers[markers.shape[0] - 10:markers.shape[0], 0:10] = 255
+        markers[markers.shape[0] - 10:markers.shape[0], markers.shape[1] - 10:markers.shape[1]] = 255
     markers[image_green_part > 0] = 60
     markers[image_ill_part > 0] = 30
 
@@ -336,4 +351,13 @@ while True:
     key = cv.waitKey(30)
     if key == ord('q') or key == 27:
         break
-
+    if key == 97:
+        image_pick_number -= 1
+        image_pick_number = max(0, image_pick_number)
+        cv.setTrackbarPos(image_pick_trackbar_name, window_trackbar_settings_name, image_pick_number)
+    if key == 100:
+        image_pick_number += 1
+        image_pick_number = min(image_pick_number, image_max_number)
+        cv.setTrackbarPos(image_pick_trackbar_name, window_trackbar_settings_name, image_pick_number)
+    if key == ord('x'):
+        markerType = not markerType
