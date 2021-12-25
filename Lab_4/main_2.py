@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Dec 10 01:10:49 2021
-
-@author: user
-"""
-
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
